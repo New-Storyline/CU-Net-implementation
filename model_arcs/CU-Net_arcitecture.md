@@ -1,6 +1,7 @@
 # CU-Net Model for LiDAR Depth Completion
 
-![Architecture](arc_figure.png)
+![Architecture](arc_figure.png)  
+> *Overview of the CU-Net architecture. Figure was taken from the original paper [CU-Net: LiDAR Depth-Only Completion With Coupled U-Net](https://doi.org/10.48550/arXiv.2210.14898).*
 
 ## Position Encoding
 
