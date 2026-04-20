@@ -1,5 +1,7 @@
 # CU-Net Model for LiDAR Depth Completion
 
+![Architecture](arc_figure.png)
+
 ## Position Encoding
 
 Additionally, this model performs position encoding in different modes
@@ -24,7 +26,7 @@ at that scale.
 - Get geometry features based on encoding mode for each scale.
 - **Encoder**:
   - 5 levels of downsampling via strided convolution (stride=2).
-    Each level consists of 4 residual blocks (`BasicBlockGeo`).  
+    Each level consists of 4 residual blocks (`BasicBlockGeo` in original code).  
     Each residual block:
     `cat(x, geo1)` → Conv3x3 → BN → ReLU → `cat(out, geo2)` → Conv3x3 → BN → + shortcut (residual) → ReLU.
 - **Decoder**:
