@@ -26,6 +26,7 @@ at that scale.
 
 - Get geometry features based on encoding mode for each scale.
 - **Encoder**:
+  - Initial layer: Conv3x3 (only depth map) → BN → ReLU.
   - 5 levels of downsampling via strided convolution (stride=2).
     Each level consists of 4 residual blocks (`BasicBlockGeo` in original code).  
     Each residual block:
@@ -60,7 +61,7 @@ at that scale.
     ```
 
 - **Encoder**:
-  - Input: concatenation of `lu_depth` processed through a conv layer (48 channels) and `d_clear` through another conv layer (16 channels), giving 64 channels total. This differs from the LU branch, which takes only sparse depth `d` through a single conv layer (64 channels).
+  - Initial layer: concatenation of `lu_depth` processed through a conv layer (48 channels) and `d_clear` through another conv layer (16 channels), giving 64 channels total. This differs from the LU branch, which takes only sparse depth `d` through a single conv layer (64 channels).
   - The rest of the encoder has the same architecture as the local U-Net encoder.
 
 - **Decoder**:
