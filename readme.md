@@ -6,6 +6,8 @@ This repository contains a custom implementation of the approach described in th
 
 CU-Net is a novel architecture designed for LiDAR depth completion tasks, which aims to predict dense depth maps from sparse LiDAR data. The model consists of two coupled U-Net structures that work together to enhance the depth completion performance. This implementation will be built using PyTorch Lightning for efficient training and modularity.
 
+You can find a detailed description of the CU-Net architecture in the [CU-Net Architecture Documentation](model_arcs/CU-Net_arcitecture.md).
+
 ## To Do
 Currently, this repository is a work in progress. The following tasks are planned for implementation:
 - [ ] Implement the CU-Net model architecture based on [Original Repository](https://github.com/YufeiWang777/CU-Net).
