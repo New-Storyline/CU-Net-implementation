@@ -175,7 +175,7 @@ class DeConvBlock(nn.Module):
             out = out + resigual
         return out
     
-class SparseDownSampleClose(nn.Module):
+class SparseDownSampleClosest(nn.Module):
     """Downsample a sparse depth map by selecting the closest (minimum) valid
     depth value within each pooling window.
 
@@ -199,7 +199,7 @@ class SparseDownSampleClose(nn.Module):
     """
 
     def __init__(self, stride):
-        super(SparseDownSampleClose, self).__init__()
+        super(SparseDownSampleClosest, self).__init__()
         self.pooling = nn.MaxPool2d(stride, stride)
         self.large_number = 600
     def forward(self, d, mask):

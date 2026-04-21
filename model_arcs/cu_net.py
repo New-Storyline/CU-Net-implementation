@@ -10,4 +10,4 @@ class CU_Net(nn.Module):
   def __init__(self):
     super(CU_Net, self).__init__()
 
-    
+    self.initial_conv 
