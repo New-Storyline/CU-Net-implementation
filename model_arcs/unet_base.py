@@ -2,6 +2,7 @@
 import torch
 import torch.nn as nn
 from base_layers import *
+from geo_features import CameraIntrinsics, GeoEncodingType, GeoFeatures
 
 class UNetBase(nn.Module):
     def __init__(self, in_channels, out_channels, geoplanes):
@@ -68,10 +69,61 @@ class UNetBase(nn.Module):
             x = self.block_4(x, geo_feature_2, geo_feature_2)
             return x
         
+class UNetWithGeoWrapper(nn.Module):
+    """
+    Wrapper module that combines the UNetBase architecture with the GeoFeatures module to create a complete depth completion model.
+    Developed for testing and ablation UNetBase model.
+    """
+    def __init__(
+            self, 
+            in_channels : int, 
+            out_channels: int, 
+            geo_encoding_type: GeoEncodingType, 
+            img_size: tuple, 
+            camera_intrinsics: CameraIntrinsics,
+            scales_num: int = 6
+
+        ):
+        super().__init__()
+
+        geoplanes = GeoFeatures.get_geo_planes_num(geo_encoding_type)
+
+        self.geo_features_module = GeoFeatures(
+            geo_encoding_type=geo_encoding_type, 
+            img_size=img_size, 
+            scales_num=scales_num, 
+            camera_intrinsics=camera_intrinsics
+        )
+        self.unet_base = UNetBase(
+            in_channels=in_channels, 
+            out_channels=out_channels, 
+            geoplanes=geoplanes
+        )
+
+    def forward(self, sparse_depth, positions_map):
+
+        geo_features_by_scale = self.geo_features_module(sparse_depth, positions_map)
+        output = self.unet_base(sparse_depth, geo_features_by_scale)
+        return output
+
 if __name__ == "__main__":
-    # Example usage
-    model = UNetBase(in_channels=16, out_channels=1, geoplanes=3)
-    input_tensor = torch.randn(2, 16, 256, 256)
-    geo_features_by_scale = [torch.randn(2, 3, 256 // (2 ** i), 256 // (2 ** i)) for i in range(6)]
-    output = model(input_tensor, geo_features_by_scale)
-    print(output.shape)
+    # Only UNetBase testing
+    # model = UNetBase(in_channels=16, out_channels=1, geoplanes=3)
+    # input_tensor = torch.randn(2, 16, 256, 256)
+    # geo_features_by_scale = [torch.randn(2, 3, 256 // (2 ** i), 256 // (2 ** i)) for i in range(6)]
+    # output = model(input_tensor, geo_features_by_scale)
+    # print(output.shape)
+
+    # UNetWithGeoWrapper testing
+    camera_intrinsics = CameraIntrinsics(c_h=128, c_w=128, f_h=256, f_w=256)
+    model_with_geo = UNetWithGeoWrapper(
+        in_channels=1, 
+        out_channels=1, 
+        geo_encoding_type=GeoEncodingType.XYZ, 
+        img_size=(256, 256), 
+        camera_intrinsics=camera_intrinsics
+    )
+    sparse_depth = torch.rand(2, 1, 256, 256)
+    positions_map = GeoFeatures.calc_position_map((256, 256))
+    output_with_geo = model_with_geo(sparse_depth, positions_map)
+    print(output_with_geo.shape)

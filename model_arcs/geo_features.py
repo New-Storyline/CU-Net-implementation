@@ -121,7 +121,7 @@ class GeoFeatures(nn.Module):
         return torch.cat((vnorm, unorm),1)
     
     @staticmethod
-    def get_geo_channels_num(geo_encoding_type: GeoEncodingType):
+    def get_geo_planes_num(geo_encoding_type: GeoEncodingType):
         if geo_encoding_type == GeoEncodingType.STD:
             return 0
         elif geo_encoding_type == GeoEncodingType.Z:
