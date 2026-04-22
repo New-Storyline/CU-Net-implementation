@@ -6,7 +6,7 @@ from typing import List
 import torch.nn as nn
 import torch
 
-from base_layers import SparseDownSampleClosest
+from model_arcs.base_layers import SparseDownSampleClosest
 
 class GeoEncodingType(enum.Enum):
   STD = 0
@@ -35,16 +35,25 @@ class GeoFeatures(nn.Module):
                 Since the original repository used the same intrinsic matrix for all images, we define it once at the beginning.
         """
         super().__init__()
+
+        assert geo_encoding_type != GeoEncodingType.XYZ or camera_intrinsics is not None, "Camera intrinsics must be provided for XYZ geo encoding type"
+
         self.geo_encoding_type = geo_encoding_type
         self.img_size = img_size
         self.scales_num = scales_num
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
         self.sparse_pool = SparseDownSampleClosest(stride=2)
 
-        self.c_h_tensor = torch.tensor(camera_intrinsics.c_h, dtype=torch.float32).view(1, 1, 1, 1)
-        self.c_w_tensor = torch.tensor(camera_intrinsics.c_w, dtype=torch.float32).view(1, 1, 1, 1)
-        self.f_h_tensor = torch.tensor(camera_intrinsics.f_h, dtype=torch.float32).view(1, 1, 1, 1)
-        self.f_w_tensor = torch.tensor(camera_intrinsics.f_w, dtype=torch.float32).view(1, 1, 1, 1)
+        if camera_intrinsics is not None:
+            self.c_h_tensor = torch.tensor(camera_intrinsics.c_h, dtype=torch.float32).view(1, 1, 1, 1)
+            self.c_w_tensor = torch.tensor(camera_intrinsics.c_w, dtype=torch.float32).view(1, 1, 1, 1)
+            self.f_h_tensor = torch.tensor(camera_intrinsics.f_h, dtype=torch.float32).view(1, 1, 1, 1)
+            self.f_w_tensor = torch.tensor(camera_intrinsics.f_w, dtype=torch.float32).view(1, 1, 1, 1)
+        else:
+            self.c_h_tensor = None
+            self.c_w_tensor = None
+            self.f_h_tensor = None
+            self.f_w_tensor = None
 
     def forward(self, sparse_depth : torch.Tensor, positions_map : torch.Tensor):
         """
