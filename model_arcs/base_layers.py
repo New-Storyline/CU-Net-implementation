@@ -22,25 +22,6 @@ def conv3x3(inplanes, planes, stride=1, groups=1, dilation=1, bias=False, paddin
         dilation=dilation
     )
 
-def calc_geofeatures(d, vnorm, unorm, h, w, ch, cw, fh, fw):
-    """
-    Calculate geometric features for position encoding in CU-Net architecture.
-    
-    Arguments:
-        d: Depth map
-        vnorm: Normalized vertical coordinates
-        unorm: Normalized horizontal coordinates
-        h: Height of the feature map
-        w: Width of the feature map
-        ch: Center height
-        cw: Center width
-        fh: Focal height
-        fw: Focal width
-    """
-    x = d * (0.5 * h * (vnorm+1) - ch) / fh
-    y = d * (0.5 * w * (unorm+1) - cw) / fw
-    return torch.cat((x, y, d),1)
-
 class ResGeoConvBlock(nn.Module):
 
     """
@@ -202,7 +183,16 @@ class SparseDownSampleClosest(nn.Module):
         super(SparseDownSampleClosest, self).__init__()
         self.pooling = nn.MaxPool2d(stride, stride)
         self.large_number = 600
+
     def forward(self, d, mask):
+        """
+        Args:
+            d: Depth map of shape (B, 1, H, W)
+            mask: Binary mask of shape (B, 1, H, W) where 1 indicates valid depth and 0 indicates invalid depth
+        Returns:
+            d_result: Downsampled depth map of shape (B, 1, H/stride, W/stride)
+            mask_result: Downsampled binary mask of shape (B, 1, H/stride, W/stride) where 1 indicates at least one valid depth in the pooling window
+        """
         encode_d = - (1-mask)*self.large_number - d
 
         d = - self.pooling(encode_d)

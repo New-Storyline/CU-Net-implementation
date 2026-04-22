@@ -9,10 +9,6 @@ class UNetBase(nn.Module):
 
         assert geoplanes >= 0 and geoplanes <= 3, "geoplanes should be between 0 and 3"
 
-        # TODO Переместить наверх
-        # self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
-        # self.sparse_pool = SparseDownSampleClosest(stride=2)
-
         self.cobv_block_1 = self.UNetConvBlock(in_channels, 64, stride=2, geoplanes=geoplanes)
         self.cobv_block_2 = self.UNetConvBlock(64, 128,  stride=2, geoplanes=geoplanes)
         self.cobv_block_3 = self.UNetConvBlock(128, 256, stride=2, geoplanes=geoplanes)

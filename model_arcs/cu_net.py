@@ -1,4 +1,11 @@
+from dataclasses import dataclass
+import enum
+
+import torch
 import torch.nn as nn
+
+from model_arcs.base_layers import SparseDownSampleClosest
+
 
 class CU_Net(nn.Module):
 
