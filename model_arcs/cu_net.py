@@ -11,7 +11,7 @@ class CU_Net(nn.Module):
 
   """
   Cu-Net architecture for LiDAR depth completion. 
-  You can find a detailed description of the CU-Net architecture in "model_arcs/CU-Net_arcitecture.md".
+  You can find a detailed description of the CU-Net architecture in "docs/CU-Net_arcitecture.md".
   """
 
   def __init__(self):
