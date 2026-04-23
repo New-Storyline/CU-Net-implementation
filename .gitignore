@@ -4,3 +4,9 @@ model_arcs/__pycache__/geo_features.cpython-312.pyc
 __pycache__/utils.cpython-312.pyc
 dataloaders/__pycache__/custom_dataset.cpython-312.pyc
 dataloaders/__pycache__/nyu_dataset_utils.cpython-312.pyc
+__pycache__/main.cpython-312.pyc
+model_arcs/__pycache__/unet_base.cpython-312.pyc
+trainer/__pycache__/cu_net_trainer.cpython-312.pyc
+utils/__pycache__/data_utils.cpython-312.pyc
+utils/__pycache__/nyu_dataset_utils.cpython-312.pyc
+utils/__pycache__/metrics.cpython-312.pyc
