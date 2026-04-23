@@ -1,5 +1,3 @@
-from dataclasses import dataclass
-import enum
 from typing import Optional
 
 import matplotlib.pyplot as plt
@@ -8,13 +6,6 @@ import torch
 import torch.utils.data as data
 from utils.data_utils import *
 from model_arcs.geo_features import CameraIntrinsics, GeoFeatures
-
-@dataclass
-class DataElement:
-    rgb: Optional[torch.Tensor]
-    sparse_depth: torch.Tensor
-    gt_depth: torch.Tensor
-    position: torch.Tensor
 
 class CustomDepthDataset(data.Dataset):
 
@@ -31,8 +22,13 @@ class CustomDepthDataset(data.Dataset):
         ):
         """
         Create a custom dataset for depth completion.
-        This dataset dynamically loads RGB images and depth maps from disk, applies transformations, 
-        and generates sparse depth maps on the fly.
+        This dataset dynamically loads RGB images and depth maps from disk,
+        applies transformations, and generates sparse depth maps on the fly.
+
+        Each sample returned by ``__getitem__`` is a dictionary compatible with
+        PyTorch's default ``collate_fn``. The sample always contains
+        ``'sparse_depth'``, ``'gt_depth'``, and ``'position'`` tensors, and it
+        contains ``'rgb'`` only when ``use_image`` is True.
 
         Args:
             get_image_pathes_fn: Callable that returns a dictionary with image
@@ -44,7 +40,8 @@ class CustomDepthDataset(data.Dataset):
             transform_fn: Callable that applies dataset transforms to the loaded
                 arrays. Expected signature:
                 `(sparse_depth, gt_depth, rgb, position) -> (sparse_depth, gt_depth, rgb, position)`.
-                rgb can be None if use_image is False.
+                The transform receives per-sample values; ``position`` has shape
+                ``(2, H, W)``. ``rgb`` can be None if use_image is False.
             load_calib_fn: Callable that loads the camera calibration matrix K.
             use_image: Whether to load and return RGB images. If False, the dataset will only return depth maps and positions.
             depth_read_fn: Callable that reads a depth map from a file path.
@@ -65,16 +62,15 @@ class CustomDepthDataset(data.Dataset):
 
         self._validate_paths()
 
-    def __getitem__(self, index) -> DataElement:
+    def __getitem__(self, index) -> dict[str, torch.Tensor]:
         """
         Get the transformed data for a given index.
-        
+
         Returns:
-            A DataElement containing:
-            - rgb: The RGB image (if use_image is True, otherwise None).
-            - sparse_depth: The generated sparse depth map.
-            - gt_depth: The ground truth depth map.
-            - position: The position map for the image.
+            dict[str, torch.Tensor]: A sample dictionary compatible with the
+            default PyTorch ``collate_fn``. It always contains the keys
+            ``'sparse_depth'``, ``'gt_depth'``, and ``'position'``. It contains
+            ``'rgb'`` only when an RGB image is loaded for this dataset.
         """
 
         assert index < len(self), f"Index {index} out of range for dataset of size {len(self)}"
@@ -86,9 +82,18 @@ class CustomDepthDataset(data.Dataset):
         else:
             sparse_dirty = self.create_sparse_depth(gt)
 
-        sparse_dirty, gt, rgb, position = self.transform(sparse_dirty, gt, rgb, self.position)
+        sample_position = self.position.squeeze(0).clone()
+        sparse_dirty, gt, rgb, position = self.transform(sparse_dirty, gt, rgb, sample_position)
 
-        return DataElement(rgb=rgb, sparse_depth=sparse_dirty, gt_depth=gt, position=position)
+        sample = {
+            'sparse_depth': self._to_tensor(sparse_dirty),
+            'gt_depth': self._to_tensor(gt),
+            'position': self._to_tensor(position),
+        }
+        if rgb is not None:
+            sample['rgb'] = self._to_tensor(rgb)
+
+        return sample
 
     def __len__(self):
         return len(self.paths['gt_depth'])
@@ -114,12 +119,26 @@ class CustomDepthDataset(data.Dataset):
             return array_like.detach().cpu().numpy()
         return np.asarray(array_like)
 
+    @staticmethod
+    def _to_tensor(array_like) -> torch.Tensor:
+        if isinstance(array_like, torch.Tensor):
+            tensor = array_like.detach().clone()
+        else:
+            tensor = torch.from_numpy(np.asarray(array_like))
+
+        if tensor.ndim == 2:
+            tensor = tensor.unsqueeze(0)
+        elif tensor.ndim == 3 and tensor.shape[-1] in (1, 3):
+            tensor = tensor.permute(2, 0, 1)
+
+        return tensor.contiguous()
+
     def visualize_first_sample(self):
         sample = self[0]
 
-        rgb = self._as_numpy(sample.rgb) if sample.rgb is not None else None
-        sparse_depth = self._as_numpy(sample.sparse_depth)
-        gt_depth = self._as_numpy(sample.gt_depth)
+        rgb = self._as_numpy(sample['rgb']) if 'rgb' in sample else None
+        sparse_depth = self._as_numpy(sample['sparse_depth'])
+        gt_depth = self._as_numpy(sample['gt_depth'])
 
         if rgb is not None and rgb.ndim == 3 and rgb.shape[0] in (1, 3):
             rgb = np.moveaxis(rgb, 0, -1)

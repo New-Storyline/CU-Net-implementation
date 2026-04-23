@@ -3,6 +3,11 @@ from pathlib import Path
 import os
 
 """
+This module provides utility functions for loading and processing the NYU Depth V2 dataset (simplified version).
+> Note: These functions are not intended for the full NYU Depth V2 dataset, but only for its 
+> simplified version: images and depth values in uint8. This is sufficient for testing the model’s functionality, 
+> but not sufficient for proper training and obtaining results due to the high level of discretization.
+
 The functions operate on the assumption that the dataset has the following structure:
 Train data:
     /nyu_data/data/nyu2_train/[location_name]_out/(1.jpg, 1.png, 2.jpg, 2.png, ...)

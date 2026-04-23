@@ -1,8 +1,8 @@
 
 import torch
 import torch.nn as nn
-from base_layers import *
-from geo_features import CameraIntrinsics, GeoEncodingType, GeoFeatures
+from model_arcs.base_layers import *
+from model_arcs.geo_features import CameraIntrinsics, GeoEncodingType, GeoFeatures
 
 class UNetBase(nn.Module):
     def __init__(self, in_out_channels, out_channels, geoplanes):
