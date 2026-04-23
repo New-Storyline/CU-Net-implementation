@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.utils.data as data
-from utils import *
+from utils.data_utils import *
 from model_arcs.geo_features import CameraIntrinsics, GeoFeatures
 
 @dataclass
@@ -77,6 +77,8 @@ class CustomDepthDataset(data.Dataset):
             - position: The position map for the image.
         """
 
+        assert index < len(self), f"Index {index} out of range for dataset of size {len(self)}"
+
         gt = self.depth_read(self.paths['gt_depth'][index])
         rgb = self.rgb_read(self.paths['rgb'][index]) if self.use_image else None
         if 'sparse_depth' in self.paths:
@@ -106,47 +108,47 @@ class CustomDepthDataset(data.Dataset):
         if sparse_depth_paths is not None and len(sparse_depth_paths) != len(gt_paths):
             raise ValueError(f"Number of sparse depth paths ({len(sparse_depth_paths)}) does not match number of GT depth paths ({len(gt_paths)})")
 
-def TEST_as_numpy(array_like):
-    if isinstance(array_like, torch.Tensor):
-        return array_like.detach().cpu().numpy()
-    return np.asarray(array_like)
+    @staticmethod
+    def _as_numpy(array_like):
+        if isinstance(array_like, torch.Tensor):
+            return array_like.detach().cpu().numpy()
+        return np.asarray(array_like)
 
+    def visualize_first_sample(self):
+        sample = self[0]
 
-def TEST_visualize_first_sample(dataset: CustomDepthDataset):
-    sample = dataset[0]
+        rgb = self._as_numpy(sample.rgb) if sample.rgb is not None else None
+        sparse_depth = self._as_numpy(sample.sparse_depth)
+        gt_depth = self._as_numpy(sample.gt_depth)
 
-    rgb = TEST_as_numpy(sample.rgb) if sample.rgb is not None else None
-    sparse_depth = TEST_as_numpy(sample.sparse_depth)
-    gt_depth = TEST_as_numpy(sample.gt_depth)
+        if rgb is not None and rgb.ndim == 3 and rgb.shape[0] in (1, 3):
+            rgb = np.moveaxis(rgb, 0, -1)
+        if rgb is not None:
+            rgb = np.squeeze(rgb)
 
-    if rgb is not None and rgb.ndim == 3 and rgb.shape[0] in (1, 3):
-        rgb = np.moveaxis(rgb, 0, -1)
-    if rgb is not None:
-        rgb = np.squeeze(rgb)
+        sparse_depth = np.squeeze(sparse_depth)
+        gt_depth = np.squeeze(gt_depth)
 
-    sparse_depth = np.squeeze(sparse_depth)
-    gt_depth = np.squeeze(gt_depth)
+        figure, axes = plt.subplots(1, 3, figsize=(15, 5))
 
-    figure, axes = plt.subplots(1, 3, figsize=(15, 5))
+        if rgb is not None:
+            axes[0].imshow(rgb)
+            axes[0].set_title("RGB image")
+        else:
+            axes[0].text(0.5, 0.5, "RGB disabled", ha="center", va="center")
+            axes[0].set_title("RGB image")
 
-    if rgb is not None:
-        axes[0].imshow(rgb)
-        axes[0].set_title("RGB image")
-    else:
-        axes[0].text(0.5, 0.5, "RGB disabled", ha="center", va="center")
-        axes[0].set_title("RGB image")
+        axes[1].imshow(sparse_depth, cmap="viridis")
+        axes[1].set_title("Sparse depth")
 
-    axes[1].imshow(sparse_depth, cmap="viridis")
-    axes[1].set_title("Sparse depth")
+        axes[2].imshow(gt_depth, cmap="viridis")
+        axes[2].set_title("GT depth")
 
-    axes[2].imshow(gt_depth, cmap="viridis")
-    axes[2].set_title("GT depth")
+        for axis in axes:
+            axis.axis("off")
 
-    for axis in axes:
-        axis.axis("off")
-
-    figure.tight_layout()
-    plt.show()
+        figure.tight_layout()
+        plt.show()
 
 def TEST_create_sparse_depth(depth):
     sparse = np.zeros_like(depth)
@@ -166,5 +168,5 @@ def test_dataset():
         load_calib_fn=None,
         use_image=True,
     )
-    TEST_visualize_first_sample(dataset)
+    dataset.visualize_first_sample()
 
