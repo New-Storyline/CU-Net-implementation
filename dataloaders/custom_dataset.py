@@ -16,8 +16,8 @@ class CustomDepthDataset(data.Dataset):
             image_size: tuple,
             get_image_pathes_fn,
             transform_fn,
-            create_sparse_depth_fn,
             load_calib_fn,
+            create_sparse_depth_fn=None,
             use_image=False,
             depth_read_fn=read_depth,
             rgb_read_fn=read_rgb,
@@ -29,18 +29,23 @@ class CustomDepthDataset(data.Dataset):
 
         Args:
             get_image_pathes_fn: Callable that returns a dictionary with image
-                paths for the dataset, for example `{'rgb': [...], 'gt_depth': [...]}`.
+                paths for the dataset, for example `{'rgb': [...], 'sparse_depth': [...], 'gt_depth': [...]}`.
+                if key 'sparse_depth' is not provided, the dataset will use `create_sparse_depth_fn` to generate sparse depth maps from the ground truth depth maps.
             create_sparse_depth_fn: Callable that converts a dense depth map to
                 a sparse depth map. Expected signature:
                 `(depth_map: np.ndarray) -> np.ndarray`.
             transform_fn: Callable that applies dataset transforms to the loaded
                 arrays. Expected signature:
                 `(sparse_depth, gt_depth, rgb, position) -> (sparse_depth, gt_depth, rgb, position)`.
+                rgb can be None if use_image is False.
             load_calib_fn: Callable that loads the camera calibration matrix K.
             use_image: Whether to load and return RGB images. If False, the dataset will only return depth maps and positions.
             depth_read_fn: Callable that reads a depth map from a file path.
             rgb_read_fn: Callable that reads an RGB image from a file path.
         """
+
+        assert create_sparse_depth_fn is not None or 'sparse_depth' in get_image_pathes_fn(), "Either create_sparse_depth_fn must be provided or 'sparse_depth' paths must be included in get_image_pathes_fn()"
+
         self.depth_read = depth_read_fn
         self.rgb_read = rgb_read_fn
         self.image_size = image_size
@@ -50,6 +55,8 @@ class CustomDepthDataset(data.Dataset):
         self.transform = transform_fn
         self.camera_intrinsics: Optional[CameraIntrinsics] = load_calib_fn() if load_calib_fn is not None else None
         self.position = GeoFeatures.calc_position_map(self.image_size)
+
+        self._validate_paths()
 
     def __getitem__(self, index):
         """
@@ -65,7 +72,10 @@ class CustomDepthDataset(data.Dataset):
 
         gt = self.depth_read(self.paths['gt_depth'][index])
         rgb = self.rgb_read(self.paths['rgb'][index]) if self.use_image else None
-        sparse_dirty = self.create_sparse_depth(gt)
+        if 'sparse_depth' in self.paths:
+            sparse_dirty = self.depth_read(self.paths['sparse_depth'][index])
+        else:
+            sparse_dirty = self.create_sparse_depth(gt)
 
         sparse_dirty, gt, rgb, position = self.transform(sparse_dirty, gt, rgb, self.position)
 
@@ -73,6 +83,22 @@ class CustomDepthDataset(data.Dataset):
 
     def __len__(self):
         return len(self.paths['gt_depth'])
+
+    def _validate_paths(self):
+        
+        if 'rgb' not in self.paths and 'sparse_depth' not in self.paths:
+            return
+        
+        rgb_paths = self.paths.get('rgb', None)
+        sparse_depth_paths = self.paths.get('sparse_depth', None)
+        gt_paths = self.paths.get('gt_depth', None)
+
+        if rgb_paths is not None and len(rgb_paths) != len(gt_paths):
+            raise ValueError(f"Number of RGB paths ({len(rgb_paths)}) does not match number of GT depth paths ({len(gt_paths)})")
+        
+        if sparse_depth_paths is not None and len(sparse_depth_paths) != len(gt_paths):
+            raise ValueError(f"Number of sparse depth paths ({len(sparse_depth_paths)}) does not match number of GT depth paths ({len(gt_paths)})")
+            
 
 @dataclass
 class DataElement:
@@ -130,8 +156,6 @@ def TEST_create_sparse_depth(depth):
     return sparse
 
 def test_dataset():
-
-
     
     dataset = CustomDepthDataset(
         image_size=(480, 640),
