@@ -25,6 +25,13 @@ class UNetTrainer(L.LightningModule):
         self.log('train_loss', loss)
         return loss
     
+    def validation_step(self, batch, batch_idx):
+        sparse_depth, positions_map, gt_depth = batch
+        pred_depth = self.model(sparse_depth, positions_map)
+        loss = self.model.loss(pred_depth, gt_depth)
+        self.log('val_loss', loss)
+        return loss
+    
     @staticmethod
     def loss(pred_depth, gd_depth):
         """
