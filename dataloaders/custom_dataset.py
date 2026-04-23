@@ -9,6 +9,13 @@ import torch.utils.data as data
 from utils import *
 from model_arcs.geo_features import CameraIntrinsics, GeoFeatures
 
+@dataclass
+class DataElement:
+    rgb: Optional[torch.Tensor]
+    sparse_depth: torch.Tensor
+    gt_depth: torch.Tensor
+    position: torch.Tensor
+
 class CustomDepthDataset(data.Dataset):
 
     def __init__(
@@ -58,7 +65,7 @@ class CustomDepthDataset(data.Dataset):
 
         self._validate_paths()
 
-    def __getitem__(self, index):
+    def __getitem__(self, index) -> DataElement:
         """
         Get the transformed data for a given index.
         
@@ -98,15 +105,6 @@ class CustomDepthDataset(data.Dataset):
         
         if sparse_depth_paths is not None and len(sparse_depth_paths) != len(gt_paths):
             raise ValueError(f"Number of sparse depth paths ({len(sparse_depth_paths)}) does not match number of GT depth paths ({len(gt_paths)})")
-            
-
-@dataclass
-class DataElement:
-    rgb: Optional[torch.Tensor]
-    sparse_depth: torch.Tensor
-    gt_depth: torch.Tensor
-    position: torch.Tensor
-
 
 def TEST_as_numpy(array_like):
     if isinstance(array_like, torch.Tensor):
