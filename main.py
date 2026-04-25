@@ -3,7 +3,8 @@ from functools import partial
 
 import lightning as L
 from torch.utils.data import DataLoader
-from dataloaders.custom_dataset import CustomDepthDataset
+from dataloaders.depth_from_files_dataset import DepthFromFilesDataset
+from dataloaders.depth_from_mat_dataset import DepthFromMatDataset
 from utils.nyu_dataset_utils import get_train_pathes, get_val_pathes
 from utils.data_utils import create_sparse_depth
 from trainer.cu_net_trainer import LitUNet
@@ -17,7 +18,7 @@ def identity_transform(sparse_depth, gt_depth, rgb, position):
     return sparse_depth, gt_depth, rgb, position
 
 def unet_training():
-    dataset_train = CustomDepthDataset(
+    dataset_train = DepthFromFilesDataset(
         image_size=IMAGE_SIZE,
         get_image_pathes_fn=partial(get_train_pathes, DATASET_ROOT),
         transform_fn=identity_transform,
@@ -26,7 +27,7 @@ def unet_training():
         use_image=True,
     )
 
-    dataset_val = CustomDepthDataset(
+    dataset_val = DepthFromFilesDataset(
         image_size=IMAGE_SIZE,
         get_image_pathes_fn=partial(get_val_pathes, DATASET_ROOT),
         transform_fn=identity_transform,
@@ -65,11 +66,13 @@ def unet_training():
     trainer = L.Trainer(
         accelerator="gpu",
         devices=1,
-        max_epochs=20,
+        max_epochs=10,
         #limit_train_batches=0.01,
         precision=16,  # Use mixed precision for faster training and reduced memory usage
     )
     trainer.fit(model=model, train_dataloaders=dataloader_train, val_dataloaders=dataloader_val)
 
 if __name__ == "__main__":
-    unet_training()
+    #unet_training()
+    #DepthFromMatDataset.print_mat_file_keys("datasets/nyu_labled (depthes in float16)/nyu_depth_v2_labeled.mat")
+    DepthFromMatDataset.test()
