@@ -7,7 +7,7 @@ import torch.utils.data as data
 from utils.data_utils import *
 from model_arcs.geo_features import CameraIntrinsics, GeoFeatures
 
-class CustomDepthDataset(data.Dataset):
+class DepthFromFilesDataset(data.Dataset):
 
     def __init__(
             self, 
@@ -176,7 +176,7 @@ def TEST_create_sparse_depth(depth):
 
 def test_dataset():
     
-    dataset = CustomDepthDataset(
+    dataset = DepthFromFilesDataset(
         image_size=(480, 640),
         get_image_pathes_fn=lambda: {
             'rgb': ['datasets\\nyu_data\\data\\nyu2_test\\00000_colors.png', 'datasets\\nyu_data\\data\\nyu2_test\\00001_colors.png'],
