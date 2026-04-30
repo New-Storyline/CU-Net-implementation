@@ -46,7 +46,7 @@ class DepthFromMatDataset(data.Dataset):
             self.sparse_depths = self._normalize_depth_batch(sparse_depths, name="sparse_depths")
 
         self.rgb_images = None
-        if rgb_images is not None:
+        if use_image and rgb_images is not None:
             self.rgb_images = self._normalize_rgb_batch(rgb_images, name="rgb_images")
 
         inferred_image_size = tuple(self.gt_depths.shape[1:3])
@@ -130,6 +130,12 @@ class DepthFromMatDataset(data.Dataset):
 
         figure.tight_layout()
         plt.show()
+
+    @staticmethod
+    def _as_numpy(array_like):
+        if isinstance(array_like, torch.Tensor):
+            return array_like.detach().cpu().numpy()
+        return np.asarray(array_like)
 
     def _validate_arrays(self):
         if len(self) == 0:
@@ -223,7 +229,7 @@ class DepthFromMatDataset(data.Dataset):
                 transpose_from_mat=transpose_from_mat,
             )
             rgb_images = None
-            if rgb_key is not None:
+            if use_image and rgb_key is not None:
                 rgb_images = DepthFromMatDataset._load_array_from_mat(
                     mat_file,
                     rgb_key,
@@ -273,6 +279,7 @@ class DepthFromMatDataset(data.Dataset):
             rgb_images=DepthFromMatDataset._slice_batch(rgb_images, val_indices),
             **common_kwargs,
         )
+        print(f"Loaded {len(dataset_train)} training samples and {len(dataset_val)} validation samples from '{mat_path}'")
         return dataset_train, dataset_val
 
     @staticmethod
@@ -376,6 +383,7 @@ class DepthFromMatDataset(data.Dataset):
             gt_depth_key=gt_depth_key,
             rgb_key=rgb_key,
             sparse_depth_key=sparse_depth_key,
+            create_sparse_depth_fn=DepthFromMatDataset.test_create_sparse_depth,
             use_image=True,
             image_size=(480, 640),
         )
@@ -385,5 +393,5 @@ class DepthFromMatDataset(data.Dataset):
     @staticmethod
     def test_create_sparse_depth(gt_depths):
         
-        return create_sparse_depth(gt_depths[0], num_points=500)
+        return create_sparse_depth(gt_depths, drop_rate=0.9)
         

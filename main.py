@@ -1,3 +1,4 @@
+import os
 import torch
 from functools import partial
 
@@ -11,33 +12,28 @@ from trainer.cu_net_trainer import LitUNet
 
 IMAGE_SIZE = (480, 640)
 DATASET_ROOT = "datasets"
-SPARSE_DEPTH_NUM_POINTS = 100 * 1000
-
+SPARSE_DEPTH_DROP_RATE = 0.9
+DATASET_MAT_FILE = "datasets/nyu_labled (depthes in float16)/nyu_depth_v2_labeled.mat"
 
 def identity_transform(sparse_depth, gt_depth, rgb, position):
     return sparse_depth, gt_depth, rgb, position
 
 def unet_training():
-    dataset_train = DepthFromFilesDataset(
-        image_size=IMAGE_SIZE,
-        get_image_pathes_fn=partial(get_train_pathes, DATASET_ROOT),
-        transform_fn=identity_transform,
-        create_sparse_depth_fn=partial(create_sparse_depth, num_points=SPARSE_DEPTH_NUM_POINTS),
-        load_calib_fn=None,
-        use_image=True,
-    )
-
-    dataset_val = DepthFromFilesDataset(
-        image_size=IMAGE_SIZE,
-        get_image_pathes_fn=partial(get_val_pathes, DATASET_ROOT),
-        transform_fn=identity_transform,
-        create_sparse_depth_fn=partial(create_sparse_depth, num_points=SPARSE_DEPTH_NUM_POINTS),
-        load_calib_fn=None,
-        use_image=True,
+    use_image = False
+    
+    dataset_train, dataset_val = DepthFromMatDataset.create_train_val_datasets_from_mat(
+        mat_path=DATASET_MAT_FILE,
+        gt_depth_key="depths",
+        rgb_key="images" if use_image else None,
+        sparse_depth_key=None,
+        create_sparse_depth_fn=partial(create_sparse_depth, drop_rate=SPARSE_DEPTH_DROP_RATE),
+        use_image=use_image,
+        image_size=(480, 640),
     )
 
     batch_size = 8
-    num_workers = 4
+    # On Windows, DataLoader workers use spawn and duplicate this in-memory dataset.
+    num_workers = 2 #0 if os.name == "nt" else 4
 
     """
     w = 6 -> 2.7 iter/s
@@ -73,6 +69,6 @@ def unet_training():
     trainer.fit(model=model, train_dataloaders=dataloader_train, val_dataloaders=dataloader_val)
 
 if __name__ == "__main__":
-    #unet_training()
+    unet_training()
     #DepthFromMatDataset.print_mat_file_keys("datasets/nyu_labled (depthes in float16)/nyu_depth_v2_labeled.mat")
-    DepthFromMatDataset.test()
+    #DepthFromMatDataset.test()
