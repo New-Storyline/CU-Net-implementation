@@ -65,30 +65,21 @@ def read_rgb(path):
     img_file.close()
     return rgb
 
-def create_sparse_depth(gt_depth, num_points=500):
+def create_sparse_depth(gt_depth, drop_rate=0.9):
     """
-    Create a sparse depth map by randomly sampling points from the ground truth depth map.
+    Create a sparse depth map by randomly dropping pixels over the full image grid.
 
     Args:
         gt_depth: The ground truth depth map as a numpy array of shape (H, W, 1).
-        num_points: The number of random points to sample for the sparse depth map.
+        drop_rate: Fraction of all pixels to zero out. Must be in the range [0, 1].
     Returns:
-        np.ndarray: A sparse depth map of the same shape as gt_depth, with values at the sampled points and zeros elsewhere.
+        np.ndarray: A sparse depth map of the same shape as gt_depth.
     """
-    H, W, _ = gt_depth.shape
-    sparse_depth = np.zeros_like(gt_depth)
+    if not 0.0 <= drop_rate <= 1.0:
+        raise ValueError(f"drop_rate must be in [0, 1], got {drop_rate}")
 
-    valid_mask = gt_depth > 0
-    valid_indices = np.argwhere(valid_mask)
-
-    if len(valid_indices) == 0:
-        raise ValueError("No valid depth points found in the ground truth depth map.")
-
-    num_points = min(num_points, len(valid_indices))
-    sampled_indices = valid_indices[np.random.choice(len(valid_indices), num_points, replace=False)]
-
-    for idx in sampled_indices:
-        y, x, _ = idx
-        sparse_depth[y, x] = gt_depth[y, x]
+    sparse_depth = np.array(gt_depth, copy=True)
+    drop_mask = np.random.random(gt_depth.shape) < drop_rate
+    sparse_depth[drop_mask] = 0
 
     return sparse_depth
