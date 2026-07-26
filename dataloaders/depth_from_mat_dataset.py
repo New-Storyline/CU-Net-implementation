@@ -102,6 +102,8 @@ class DepthFromMatDataset(data.Dataset):
         sparse_depth = self._as_numpy(sample['sparse_depth'])
         gt_depth = self._as_numpy(sample['gt_depth'])
 
+        print(f"gt_depth min={gt_depth.min():.3f}, max={gt_depth.max():.3f}, mean={gt_depth.mean():.3f}")
+
         if rgb is not None and rgb.ndim == 3 and rgb.shape[0] in (1, 3):
             rgb = np.moveaxis(rgb, 0, -1)
         if rgb is not None:
@@ -376,7 +378,7 @@ class DepthFromMatDataset(data.Dataset):
         mat_file = "datasets/nyu_labled (depthes in float16)/nyu_depth_v2_labeled.mat"
         gt_depth_key = "depths"
         rgb_key = "images"
-        sparse_depth_key = None
+        sparse_depth_key = "rawDepths"
         
         dataset_train, dataset_val = DepthFromMatDataset.create_train_val_datasets_from_mat(
             mat_path=mat_file,
@@ -392,6 +394,6 @@ class DepthFromMatDataset(data.Dataset):
 
     @staticmethod
     def test_create_sparse_depth(gt_depths):
-        
+        print(f"gt_depths min={gt_depths.min():.3f}, max={gt_depths.max():.3f}, mean={gt_depths.mean():.3f}")
         return create_sparse_depth(gt_depths, drop_rate=0.9)
         

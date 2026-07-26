@@ -31,10 +31,11 @@ def unet_training():
         image_size=(480, 640),
     )
 
+    checkpoint_path = "lightning_logs/version_1/checkpoints/epoch=20-step=3045.ckpt"
     batch_size = 8
     # On Windows, DataLoader workers use spawn and duplicate this in-memory dataset.
     num_workers = 2 #0 if os.name == "nt" else 4
-
+    
     """
     w = 6 -> 2.7 iter/s
     w = 4 -> 2.8 iter/s (optimal)
@@ -62,11 +63,16 @@ def unet_training():
     trainer = L.Trainer(
         accelerator="gpu",
         devices=1,
-        max_epochs=10,
+        max_epochs=100,
         #limit_train_batches=0.01,
-        precision=16,  # Use mixed precision for faster training and reduced memory usage
+        precision='16-mixed',  # Use mixed precision for faster training and reduced memory usage
     )
-    trainer.fit(model=model, train_dataloaders=dataloader_train, val_dataloaders=dataloader_val)
+    trainer.fit(
+        model=model, 
+        train_dataloaders=dataloader_train, 
+        val_dataloaders=dataloader_val,
+        ckpt_path=checkpoint_path
+    )
 
 if __name__ == "__main__":
     unet_training()
